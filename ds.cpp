@@ -1,20 +1,12 @@
 #include "mysqlconncpp-static/include/mysqlx/xdevapi.h"
+#include "mysqlx/devapi/settings.h"
 #include <iostream>
 #include <thread>
 #include <vector>
+#include "lib/test.h"
 
 using namespace mysqlx;
 
-void test(Session session){
-    Schema db = session.getSchema("addressbook");
-    Table myTable = db.getTable("addresses");
-    RowResult myResult = myTable.select("name", "address").execute();
-    std::cout << "Printing all rows from the table ..." << std::endl;
-    auto rows = myResult.fetchAll();
-    for (auto row : rows) {
-        std::cout << row[0] << ", " << row[1] << std::endl;
-    }
-}
 
 int main(){
 // Connect to the MySQL server
@@ -39,16 +31,19 @@ int main(){
     // close the session
     session.close();
 
-
-    Client cli("root:root@localhost/addressbook", ClientOption::POOL_MAX_SIZE, 4, ClientOption::POOL_MAX_IDLE_TIME, 0, ClientOption::POOL_QUEUE_TIMEOUT, 0);
+    // open Client Pooll with size 4  and Max Idle Time infinite and Queue Timeout infinite
+    Client cli("root:root@localhost/addressbook", ClientOption::POOL_MAX_SIZE, 4, ClientOption::POOL_MAX_IDLE_TIME, 2000, ClientOption::POOL_QUEUE_TIMEOUT, 50000);
     std::vector<std::thread> threads;
-    for (int i = 0; i < 10; i++){
+    for (int i = 0; i < 20; i++){
         threads.push_back(std::thread(test, cli.getSession()));
     }
 
     for (auto& th : threads){
         th.join();
     }
+    std::cout << "finished" << std::endl;
+    // wait for 5 seconds
+    std::this_thread::sleep_for(std::chrono::seconds(5));
 
     cli.close();
 
